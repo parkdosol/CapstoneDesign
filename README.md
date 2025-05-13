@@ -1,50 +1,6 @@
 # CapstoneDesign
 
-
-# 파일 구조 
-/project-root
-│
-├── python/
-│   ├── main.py
-│   ├── physics/
-│   │   ├── VehicleDynamics.py
-│   │   ├── Tire.py
-│   │   ├── Suspension.py
-│   │   └── PhysicsManager.py
-│   ├── sensor/
-│   │   └── SensorProcessor.py
-│   ├── perception/
-│   │   ├── PerceptionManager.py
-│   │   ├── CollisionPredictor.py
-│   │   ├── HazardClassifier.py
-│   │   └── ProximityTracker.py
-│   ├── debug/
-│   │   ├── DebugManager.py
-│   │   ├── Debugger.py
-│   │   ├── DataLogger.py
-│   │   └── DataPlotter.py
-│   └── streaming/
-│       └── StateSender.py
-│
-└── unity/
-    ├── Input/
-    │   ├── InputManager.cs
-    │   ├── Keyboard.cs
-    │   └── Joystick.cs
-    ├── Streaming/
-    │   └── TCPReceiver.cs
-    ├── Vehicle/
-    │   └── VehicleController.cs
-    ├── Rendering/
-    │   └── RenderManager.cs
-    └── UI/
-        ├── UIManager.cs
-        ├── UIModule.cs
-        ├── StatusDisplay.cs
-        └── SensorDisplay.cs
-
-
-# 조작법
+## 조작법
 🎮 운전 조작법 (Keyboard Controls)
 키	기능	설명
 W	전진 (Throttle)	차량을 전방으로 가속

@@ -1,3 +1,12 @@
+/*
+목적 : 입력 관리 코드
+작성자 : 박도솔
+최초 작성일자 : 2025-05-13
+수정자 : 박도솔
+최종 수정일자 : 2025-05-13
+
+*/
+
 using UnityEngine;
 
 public class InputManager : MonoBehaviour
