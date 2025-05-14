@@ -1,3 +1,15 @@
+"""
+목표 : 입력(조이스틱, 키보드 등) 관리
+최초 작성자 : 박도솔
+최초 작성일자 : 2025-05-14
+
+기여자 : 박도솔
+
+최종 수정자 : 박도솔
+최종 수정일자 : 2025-05-14
+
+참고 : 입력 장치 통합 관리
+"""
 # InputManager.py
 class ControlState:
     def __init__(self, throttle=0.0, brake=0.0, steer=0.0, parking_brake=False,
