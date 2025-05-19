@@ -1,12 +1,5 @@
 import numpy as np
 import mujoco
-from brake_model import AirBrake
-
-"""
-통합 Pacejka 모델
-- 브레이크 토크를 보존하고
-- 모든 힘/토크 초기화 → Pacejka 계산 → 브레이크 토크 복원
-"""
 
 def magic_formula(slip, Fz, B, C, E, mu, max_D=None):
     """
@@ -54,7 +47,7 @@ class Pacejka:
         # 차량/물리 파라미터
         cid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'chassis')
         self.m      = float(model.body_mass[cid])         # 전체 질량
-        self.h_cog  = float(model.body_pos[cid, 2])      # CoG 높이
+        self.h_cog  = float(model.body_pos[cid, 2])       # CoG 높이
         self.wbase  = 2.5                                # 휠베이스
         self.track  = 3.0                                # 트랙 반차폭
         # Pacejka 계수
@@ -66,7 +59,7 @@ class Pacejka:
         self.r        = 0.35                            # wheel radius
         self.damp     = 0.1                             # joint damping
 
-    def apply(self, data: mujoco.MjData, brake: AirBrake=None):
+    def apply(self, data: mujoco.MjData, brake=None):
         """
         매 스텝 호출
         1) 기존 브레이크 토크 보관
@@ -77,7 +70,7 @@ class Pacejka:
         # 1) 브레이크 토크 임시 저장
         brake_torques = {}
         if brake and brake.braking:
-            for _, _, jid, _, _ in self.ids:
+            for _, _, jid, *_ in self.ids:
                 brake_torques[jid] = float(data.qfrc_applied[jid])
 
         # 2) 이전 스텝 힘/토크 초기화
@@ -86,10 +79,15 @@ class Pacejka:
             data.qfrc_applied[jid] = 0
 
         # 3) Pacejka 접지력 및 모터 토크 계산
-        # 차체 가속도
-        ax, ay = float(data.qacc[0]), float(data.qacc[1])
+        # 차체 가속도 (world)
+        acc_world = np.array([data.qacc[0], data.qacc[1], data.qacc[2]])
+        cid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, 'chassis')
+        R = data.xmat[cid].reshape(3, 3)
+        acc_local = R.T.dot(acc_world)
+        ax, ay = acc_local[0], acc_local[1]
         # 정적 하중
         Fz_stat = self.m * 9.81 / 4.0
+
         for body, bid, jid, sjid, aid in self.ids:
             # weight transfer 계산
             front = 'front' in body
@@ -100,7 +98,7 @@ class Pacejka:
                                   + dF_lat*(1 if left else -1))
             Fz = float(np.clip(Fz_calc, 10.0, self.max_load))
 
-            # 바디 로컬 속도
+            # body local velocity
             vel6 = np.zeros(6, float)
             mujoco.mj_objectVelocity(self.model, data,
                                      mujoco.mjtObj.mjOBJ_BODY, bid,
@@ -111,7 +109,6 @@ class Pacejka:
             omega = float(data.qvel[jid])
             vw    = omega * self.r
             vn    = max(abs(vx), 0.5)
-            # 정지 마찰(breakaway) 보정
             ctrl_torque = float(data.ctrl[aid])
             if abs(omega) < 1e-3 and abs(ctrl_torque) > 10.0:
                 kappa = np.sign(ctrl_torque) * 0.1
@@ -129,23 +126,29 @@ class Pacejka:
             # Pacejka force 계산
             Fx = float(np.clip(
                 magic_formula(kappa, Fz,
-                              self.Bx, self.Cx, self.Ex, self.mu_x,
-                              self.max_Fx),
+                              self.Bx, self.Cx, self.Ex, self.mu_x),
                 -self.max_Fx, self.max_Fx))
             Fy = float(np.clip(
                 magic_formula(beta,  Fz,
-                              self.By, self.Cy, self.Ey, self.mu_y,
-                              self.max_Fy),
+                              self.By, self.Cy, self.Ey, self.mu_y),
                 -self.max_Fy, self.max_Fy))
-            
+
             # 외력/토크 적용
-            data.xfrc_applied[bid, 0] = Fx
-            data.xfrc_applied[bid, 1] = Fy
+            # 1) 바디 로컬 회전 행렬 R (3×3) 얻기
+            Rb = data.xmat[bid].reshape(3, 3)
+
+            # 2) 로컬 힘 벡터 생성
+            local_force = np.array([Fx, Fy, 0.0])
+
+            # 3) 월드 힘으로 변환
+            world_force = Rb.dot(local_force)
+
+            # 4) 변환된 월드 힘을 적용
+            data.xfrc_applied[bid, :3] = world_force
             torque = np.sign(omega) * Fx * self.r + self.damp * omega
-            data.qfrc_applied[jid]   -= torque
+            data.qfrc_applied[jid] -= torque
 
         # 4) 브레이크 토크 복원
         if brake and brake.braking:
             for jid, tq in brake_torques.items():
                 data.qfrc_applied[jid] += tq
-
