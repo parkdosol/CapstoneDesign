@@ -86,7 +86,7 @@ class AirBrake:
 
         if not self.braking:
             # 비제동 시: 공기압 충전 로직
-            if speed_mag > 0.5:
+            if forward_speed > 0.5:
                 self.p = min(self.p_max, self.p + 0.015 * drive_rpm)
             else:
                 # 완전 정지 시 초기 압력 유지
