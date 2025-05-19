@@ -22,4 +22,4 @@ def load_params_from_json(json_path=None):
         json_path = os.path.join(os.path.dirname(__file__), 'physics_param.json')
     with open(json_path, 'r') as f:
         params = json.load(f)
-    return params['car_params'], params['force_params'] 
+    return params['car_params'], params['force_params'], params['suspension_params'] 

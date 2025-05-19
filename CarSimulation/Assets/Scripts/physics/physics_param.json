@@ -18,7 +18,23 @@
     "Ey": 0.97,
     "mu_y": 1.0,
     "max_load": 3000.0
+  },
+
+  "brake_params": {
+    "p_init": 800e3,
+    "p_min": 500e3,
+    "p_max": 900e3,
+    "p_die": 400e3,
+    "V_res": 0.0,
+    "V_ch": 0.0,
+    "d_dia": 0.0,
+    "mu": 0.0,
+    "r_lever": 0.0
+  },
+
+  "suspension_params": {
+    "spring_rate": 100000,
+    "damping_rate": 10000,
+    "rest_length": 0.5
   }
-
-
 }
