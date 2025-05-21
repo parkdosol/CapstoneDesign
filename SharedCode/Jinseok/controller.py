@@ -1,82 +1,59 @@
-# controller.py
+# keyboard_controller.py
 """
-목적 : 컨트롤러 + 디스크 브레이크 적용
+목적 : 컨트롤러
 작성자 : 박진석
 최초 작성일자 : 2025-05-03
 수정자 : 박진석
-최종 수정일자 : 2025-05-05
+최종 수정일자 : 2025-05-21
 """
 
-import glfw, numpy as np, mujoco
+"""
+키보드 입력 기반 간단 컨트롤러 (정리 버전)
+──────────────────────────────────────────
+W / S : 전진·후진 토크  (모터 4개에 동일 토크)
+A / D : 좌·우 조향 토크 (앞바퀴 2개에 동일 토크)
+"""
+
+import glfw
+
+# ───────────── 파라미터 블록 ─────────────
+TORQUE_FWD    =  +500.0   # 전진 토크 [N·m]
+TORQUE_REV    =  -500.0   # 후진 토크 [N·m]
+STEER_LEFT    = +1000.0   # 좌조향 토크 [N·m]
+STEER_RIGHT   = -1000.0   # 우조향 토크 [N·m]
+# ────────────────────────────────────────
 
 class KeyboardController:
-    def __init__(self, model: mujoco.MjModel):
-        self.model = model
-        self.torque   = 0.0
-        self.steering = 0.0
-        self.braking  = False
-        self.brake_gain = 5000.0
+    """GLFW 키 입력을 모터·조향 토크로 변환"""
 
-        # actuator ID 캐싱  (앞바퀴 브레이크 추가)
-        self.act_ids = {
-            'fl_brake': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'fl_brake'),
-            'fr_brake': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'fr_brake'),
-            'rl_brake': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'rl_brake'),
-            'rr_brake': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'rr_brake'),
+    def __init__(self):
+        self.torque   = 0.0  # 4개 구동 휠 공통 구동 토크
+        self.steering = 0.0  # 좌·우 앞바퀴 조향 토크
 
-            'rl_drive': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'rl_drive'),
-            'rr_drive': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'rr_drive'),
-            'fl_steer': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'fl_steer_motor'),
-            'fr_steer': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'fr_steer_motor'),
-        }
-
-        # 모든 휠 joint ID  (angular velocity 읽기용)
-        self.joint_ids = {
-            'fl': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'fl_wheel'),
-            'fr': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'fr_wheel'),
-            'rl': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'rl_wheel'),
-            'rr': mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'rr_wheel'),
-        }
-
+    # -------------------------------------------------
     def key_callback(self, window, key, scancode, action, mods):
+        """키 이벤트 처리"""
         if action in (glfw.PRESS, glfw.REPEAT):
             if key == glfw.KEY_W:
-                self.torque = 2000.0
+                self.torque = TORQUE_FWD
             elif key == glfw.KEY_S:
-                self.torque = -2000.0
+                self.torque = TORQUE_REV
             elif key == glfw.KEY_A:
-                self.steering = 1000.0
+                self.steering = STEER_LEFT
             elif key == glfw.KEY_D:
-                self.steering = -1000.0
-            elif key == glfw.KEY_SPACE:
-                self.braking = True
+                self.steering = STEER_RIGHT
+
         elif action == glfw.RELEASE:
+            # 해당 키가 떨어지면 그 축 토크 0
             if key in (glfw.KEY_W, glfw.KEY_S):
                 self.torque = 0.0
             if key in (glfw.KEY_A, glfw.KEY_D):
                 self.steering = 0.0
-            if key == glfw.KEY_SPACE:
-                self.braking = False
 
-    def apply(self, data: mujoco.MjData):
-        # 조향
-        data.ctrl[self.act_ids['fl_steer']] = self.steering
-        data.ctrl[self.act_ids['fr_steer']] = self.steering
-
-        if self.braking:
-            # 구동력 차단
-            data.ctrl[self.act_ids['rl_drive']] = 0.0
-            data.ctrl[self.act_ids['rr_drive']] = 0.0
-
-            # 네 바퀴 모두 디스크 브레이크
-            for wheel in ('fl', 'fr', 'rl', 'rr'):
-                omega = data.qvel[self.joint_ids[wheel]]
-                data.ctrl[self.act_ids[f'{wheel}_brake']] = -self.brake_gain * omega
-        else:
-            # 주행 모드
-            data.ctrl[self.act_ids['rl_drive']] = self.torque
-            data.ctrl[self.act_ids['rr_drive']] = self.torque
-
-            # 브레이크 토크 해제
-            for wheel in ('fl', 'fr', 'rl', 'rr'):
-                data.ctrl[self.act_ids[f'{wheel}_brake']] = 0.0
+    # -------------------------------------------------
+    def apply(self, data):
+        """MuJoCo data.ctrl 에 토크 적용 (각 스텝마다 호출)"""
+        # 구동 토크 → ctrl[2:3] (2개 휠)
+        data.ctrl[2] = data.ctrl[3] = self.torque
+        # 조향 토크 → ctrl[4], ctrl[5] (앞바퀴 조향)
+        data.ctrl[4] = data.ctrl[5] = self.steering
