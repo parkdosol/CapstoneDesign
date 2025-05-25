@@ -1,44 +1,65 @@
+# main.py
 """
 목적 : main loop
-작성자 : 박도솔
 최초 작성일자 : 2025-05-14
-참여자 : 박도솔, 박진석
-수정자 : 박도솔 
-최종 수정일자 : 2025-05-14
 
-참고 : 기본 틀만 잡는 중 
+기여자 : 김준호, 박도솔, 박진석, 윤건영
+
+최종수정자 : 박도솔 
+최종 수정일자 : 2025-05-25
+
+참고 : 기본 틀 잡는 중 
 """
-
-# main.py
 import os
+import time
 
-from Input.InputManager import InputManager
+from utils.load_data import *
+from input.controller import KeyboardController
 from physics.PhysicsManager import PhysicsManager
-from utils.load_data import load_params_from_json
+from utils.render import *
 
-def main():
-    # 파라미터 로드 (physics_param.json 직접 사용)
-    param_path = os.path.join(os.path.dirname(__file__), 'physics', 'physics_param.json')
-    car_params, force_params, suspension_params = load_params_from_json(param_path)
+TIME_STEP = 0.01
 
-    # physics 관리자 초기화
-    physics_manager = PhysicsManager(car_params, force_params, suspension_params)
+def main() -> None:
 
-    # 예시 입력값 (throttle, brake, steer 등)
-    throttle = 1.0
-    brake = 0.0
-    steer = 0.0
+    # 파라미터 로드 
+    params = load_json()
+    model, data = load_model(params)
 
-    for step in range(10):  # 10스텝만 예시로 실행
-        # 제어값을 시뮬레이션에 적용 (필요시 PhysicsManager에 맞게 수정)
-        # 예: physics_manager.apply_control(throttle, brake, steer)
-        # 실제 적용 함수명은 PhysicsManager 구현에 따라 다를 수 있음
+    # 차체 ID 캐싱 
+    chassis_id = get_chassis_id(model)
+    wheel_ids = get_wheel_ids(model)
 
-        # 시뮬레이션 한 스텝 진행
-        physics_manager.step()
+   # 구성 요소 인스턴스 생성 - TODO : HUD 추가 
+    physics = PhysicsManager()
+    ctrl = KeyboardController()
+    
+    # 창 뷰어 세팅 
+    win = init_window(WIN_WIDTH, WIN_HEIGHT, "MuJoCo Vehicle")
+    def key_all(win, key, sc, act, mods):
+        ctrl.key_callback(win, key, sc, act, mods)
+        physics.key_callback(win, key, sc, act, mods)
+    glfw.set_key_callback(win, key_all)
+    cam, opt, scn, ctx = init_viewer(model)
 
-        # 결과 출력 (필요시 PhysicsManager에서 상태값 받아서 출력)
-        print(f"Step {step+1} 완료")
+    # Main Loop 
+    try: 
+        while not glfw.window_should_close(win):
+            loop_start = time.perf_counter()
+            glfw.poll_events()
+
+            ctrl.apply(data) # 입력 처리 
+            physics.step(ctrl, dt=TIME_STEP) # 물리 연산 
+            
+
+            time.sleep(TIME_STEP)
+
+    except Exception as e:
+        raise RuntimeError(f"Simulation 중 예외 발생: {e}")
+    
+    finally:
+        glfw.terminate()
+        print("Simulation 종료")
 
 if __name__ == '__main__':
     main()

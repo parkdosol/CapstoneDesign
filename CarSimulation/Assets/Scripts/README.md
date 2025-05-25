@@ -35,3 +35,7 @@
 
 - **perception/**  
   차량 주변 인식, 충돌 예측, 위험 분류 등 인지 관련 기능을 담당합니다.
+
+## physics/ 폴더 내부 기능 정리 
+- Brake.py 
+- Pacejka.py 
