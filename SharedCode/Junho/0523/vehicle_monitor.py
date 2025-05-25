@@ -2,8 +2,8 @@
 목적   : 차량 HUD(Head-Up Display) 정보 실시간 출력 (차체 좌표계 처리)
 작성자 : 
 최초 작성일자 : 2025-05-03
-수정자 : 박진석
-최종 수정일자 : 2025-05-21
+수정자 : 김준호
+최종 수정일자 : 2025-05-25
 """
 
 # ───────────────── 파라미터 블록 ─────────────────
@@ -81,7 +81,8 @@ class VehicleMonitor:
         self.thrtl   = ctrl.torque
         self.steer   = ctrl.steering
         self.brake_p = brake.p * 0.001  # Pa → kPa
-        self.speed   = float(np.linalg.norm(data.qvel[0:2]) * M_TO_KMH)
+        self.speed_ms = float(np.linalg.norm(data.qvel[0:3]))
+        self.speed   = float(np.linalg.norm(data.qvel[0:3]) * M_TO_KMH)
         self.t_sim   = data.time
         self.t_wall  = time.perf_counter() - self.t0_wall
 
@@ -126,7 +127,7 @@ class VehicleMonitor:
             "  Steer:" + p(self.steer,6,0) +
             f"  Brake:{int(self.brake_p):04d}kPa",
 
-            f"VEHCL  Speed:{self.speed:6.1f}km/h" + (f"  Mass:{self.mass_t:4.1f}t" if SHOW_MASS_INFO else ""),
+            f"VEHCL  Speed:{self.speed:6.1f}km/h = {self.speed_ms:6.1f}m/s" + (f"  Mass:{self.mass_t:4.1f}t" if SHOW_MASS_INFO else ""),
 
             "FORCE  Fx:" + p(sum(self.fx)) + "kN  Fy:" + p(sum(self.fy)) + "kN",
 
