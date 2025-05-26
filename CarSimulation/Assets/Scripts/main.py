@@ -8,8 +8,13 @@
 최종수정자 : 박도솔 
 최종 수정일자 : 2025-05-25
 
-참고 : 기본 틀 잡는 중 
+[참고] 
+- controller, Brake 추가 완료
+- Rendering 추가 예정
+- Pacejka 추가 예정
+
 """
+
 import os
 import time
 
@@ -20,43 +25,54 @@ from utils.render import *
 
 TIME_STEP = 0.01
 
-def main() -> None:
-
-    # 파라미터 로드 
-    params = load_json()
+def init_simulation(params) -> tuple:
     model, data = load_model(params)
 
-    # 차체 ID 캐싱 
     chassis_id = get_chassis_id(model)
     wheel_ids = get_wheel_ids(model)
 
-   # 구성 요소 인스턴스 생성 - TODO : HUD 추가 
-    physics = PhysicsManager()
     ctrl = KeyboardController()
-    
-    # 창 뷰어 세팅 
+    physics = PhysicsManager(model, data, params, ctrl)
+
+    return model, data, physics, ctrl
+
+def init_viewer_system(model, ctrl, physics) -> tuple:
     win = init_window(WIN_WIDTH, WIN_HEIGHT, "MuJoCo Vehicle")
+
     def key_all(win, key, sc, act, mods):
         ctrl.key_callback(win, key, sc, act, mods)
-        physics.key_callback(win, key, sc, act, mods)
+        # physics.key_callback(win, key, sc, act, mods) # ???
+
     glfw.set_key_callback(win, key_all)
-    cam, opt, scn, ctx = init_viewer(model)
+    cam, opt, scn, ctx = init_viewer(model) 
 
-    # Main Loop 
-    try: 
+    return win, cam, opt, scn, ctx
+
+def main() -> None:
+    params = load_json(json_path="/workspace/CarSimulation/Assets/Scripts/physics/physics_param.json")
+    model, data, physics, ctrl = init_simulation(params)
+    win, cam, opt, scn, ctx = init_viewer_system(model, ctrl, physics)
+
+    physics.apply_static_sag(model, data) # 서스펜션 정적 처짐 적용 
+    
+    try:
         while not glfw.window_should_close(win):
-            loop_start = time.perf_counter()
             glfw.poll_events()
-
-            ctrl.apply(data) # 입력 처리 
-            physics.step(ctrl, dt=TIME_STEP) # 물리 연산 
+            physics.step()
             
+            # TODO : 렌더링 추가 
+            mujoco.mjv_updateScene(model, data, opt, None, cam, mujoco.mjtCatBit.mjCAT_ALL, scn)
 
-            time.sleep(TIME_STEP)
+            width, height = glfw.get_framebuffer_size(win) 
+            # width, height = params["WIN_WIDTH"], params["WIN_HEIGHT"]
+            viewport = mujoco.MjrRect(0, 0, width, height)
+
+            mujoco.mjr_render(viewport, scn, ctx)
+            glfw.swap_buffers(win) 
 
     except Exception as e:
         raise RuntimeError(f"Simulation 중 예외 발생: {e}")
-    
+
     finally:
         glfw.terminate()
         print("Simulation 종료")

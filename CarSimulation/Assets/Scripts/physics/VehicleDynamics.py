@@ -11,6 +11,7 @@
 참고 : 수정 작업중
 """
 import numpy as np
+import mujoco
 
 class VehicleDynamics:
     """
@@ -18,3 +19,10 @@ class VehicleDynamics:
     """
 
     # TODO : 차량 동역학 모듈 추가 
+    def __init__(self, model: mujoco.MjModel, data: mujoco.MjData) -> None:
+        # TODO : 내용 추가 
+        pass
+
+    def apply(self, model: mujoco.MjModel, data: mujoco.MjData) -> None:
+        # TODO : 내용 추가 
+        pass

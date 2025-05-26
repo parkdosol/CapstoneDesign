@@ -22,28 +22,30 @@ def _read_file_text(path: str) -> str:
         return f.read()
 
 # JSON 파일에서 파라미터 로드 함수
-def load_json(json_path=None):
+def load_json(json_path=None) -> dict:
     if json_path is None: # 기본 경로는 physics_param.json 
         json_path = os.path.join(os.path.dirname(__file__), 'physics_param.json')
     with open(json_path, 'r') as f:
         params = json.load(f)
-    return params['car_params'], params['force_params'], params['suspension_params'] 
+    return params
 
 # MuJoCo 모델 로드 함수 - params 이용해 xml 치환 
 def load_model(params):
-    base_dir = os.path.dirname(__file__)
-    xml_path = os.path.join(base_dir, params["CAR_MODEL"])
-    stl_path = os.path.join(base_dir, params["STL_NAME"])
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # utils/ → Scripts/
+    xml_path = os.path.join(base_dir, params["CAR_PATH"])
+    stl_path = os.path.join(base_dir, params["STL_PATH"])
 
     # STL asset dictionary 생성
-    stl_name = params["STL_NAME"]
+    stl_name = os.path.basename(stl_path)  # "closed_truck.stl"
+    params["STL_NAME"] = stl_name          # XML 템플릿에서 {STL_NAME}으로 사용 가능
     stl_dict = {stl_name: _read_file_binary(stl_path)}
 
     # XML 템플릿 파싱 및 파라미터 치환 
     xml_template = _read_file_text(xml_path)
+
     try: 
         xml_filled = xml_template.format(**params)
-        model = mujoco.MjModel.from_xml_string(xml_filled, asset_dict)
+        model = mujoco.MjModel.from_xml_string(xml_filled, stl_dict)
         data = mujoco.MjData(model)
         return model, data
     except Exception as e:

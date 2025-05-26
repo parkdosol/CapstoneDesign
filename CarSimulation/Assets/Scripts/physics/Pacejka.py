@@ -12,37 +12,30 @@ import mujoco
 
 from utils.load_data import *
 
-PARAMS = load_json()
-
 # ────────────────────────────────────────────────────────────────────────────
 class Pacejka:
+
     @staticmethod
     def _magic_formula(slip: np.ndarray | float, Fz: float,
-                       B: float, C: float, E: float, mu: float,
-                       Dmax: float | None = None) -> np.ndarray | float:
-        return mu * Fz * (A * slip + B * np.sin(C * np.arctan(B * slip - E * (B * slip - np.arctan(B * slip)))))
-
-    def __init__(self, model: mujoco.MjModel):
+                    B: float, C: float, E: float, mu: float,
+                    Dmax: float | None = None) -> np.ndarray | float:
+        """Pacejka Magic Formula (Fx 또는 Fy 계산)"""
+        D = mu * Fz
+        if Dmax is not None:
+            D = np.minimum(D, Dmax)
+        Bs = B * slip
+        return D * np.sin(C * np.arctan(Bs - E * (Bs - np.arctan(Bs))))
+    
+    def __init__(self, model: mujoco.MjModel, params: dict):
         self.model = model
+        self.params = params
+        
         self.cid = get_chassis_id(model)
         self.wids = get_wheel_ids(model)
         self.mass = model.body_mass[self.cid]
-        self.h_cg = model.body_pos[self.cid, 2] if PARAMS["CG_HEIGHT"] is None else PARAMS["CG_HEIGHT"]
+        self.h_cg = model.body_pos[self.cid, 2] if self.params["CG_HEIGHT"] is None else self.params["CG_HEIGHT"]
+
     
 
     def apply(self, data: mujoco.MjData, brake=None):
-        # (1) 브레이크 토크 백업 & 직전 스텝 힘/토크 초기화
-        bk_torque: dict[int, float] = {}
-
-        for _, bid, jid, _, _ in self.wids:
-            # 초기화
-            data.xfrc_applied[bid] = 0 # 차체 힘
-            data.qfrc_applied[jid] = 0 # 바퀴 힘
-
-            # 브레이크 토크 백업 (필요 시만)
-            if brake and brake.braking:
-                bk_torque[jid] = float(data.qfrc_applied[jid])
-
-        # (2) 차체 가속도(local) 계산 → 하중 이동
-
-        # TODO : Main loop에서 최적화 될 수 있도록 코드 수정 필요
+        pass

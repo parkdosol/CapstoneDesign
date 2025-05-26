@@ -88,7 +88,7 @@ class Pacejka:
         # (3) 차체 가속도(local) 계산 → 하중 이동
         acc_world = np.array([data.qacc[0], data.qacc[1], data.qacc[2]])
         cid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "chassis")
-        R_cg = data.xmat[cid].reshape(3,3)
+        R_cg = data.xmat[cid].reshape(3,3) # 차체 좌표계와 월드 좌표계 변환에 사용,  차체(Body)의 회전 행렬(3x3)
         ax, ay = (R_cg.T @ acc_world)[:2]
         Fz_static = self.mass * 9.81 / 4
 
