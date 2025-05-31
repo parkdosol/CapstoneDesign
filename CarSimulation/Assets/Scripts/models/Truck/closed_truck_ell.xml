@@ -2,8 +2,8 @@
 목적   : 차량 모델 설계 (closed truck)
 작성자 : 김준호
 최초 작성일자 : 2025‑05‑23
-수정자 : 김준호
-최종 수정일자 : 2025‑05‑25
+수정자 : 윤건영
+최종 수정일자 : 2025‑06‑01
 -->
 <mujoco model="closed truck">
   <!-- 컴파일러 : 관성 자동 적용 -->
@@ -114,7 +114,7 @@
         <inertial pos="0 0 0"
                   mass="{MASS_SUSP}"
                   diaginertia="{INERTIA_SUSP} {INERTIA_SUSP} {INERTIA_SUSP}"/>
-        <joint name="rr_susp" type="slide" axis="0 1 0"
+        <joint name="rr_susp" type="slide" axis="0 0 1"
                range="-.15 .05" ref=".05"
                stiffness="{SPRING_K_R}" damping="{DAMP_SUSP}"/>
         <body name="rear_right_wheel" pos="0 0 0">
