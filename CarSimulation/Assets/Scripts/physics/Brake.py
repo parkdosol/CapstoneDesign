@@ -127,14 +127,20 @@ class AirBrake:
         return tau
 
     def _apply_abs_torque(self, data: mujoco.MjData, params: dict) -> None:
-        # ABS 로직 적용하여 각 휠에 브레이크 토크 분배
+        """ABS 로직을 적용해 브레이크 토크를 각 휠에 분배"""
         for i, act_idx in enumerate(self._act_brake):
             wheel_jid = self._wheel_jids[i]
             wheel_vel = data.qvel[wheel_jid]
-            # 바퀴가 돌고 있으면 반대 방향으로 토크
+
+            # 바퀴가 회전 중이면 회전 방향 반대로 토크를 적용
             if abs(wheel_vel) > 1e-3:
+                torque = -np.sign(wheel_vel) * self.brake_torque
+            # 거의 정지 상태면 차량 진행 방향 기준으로 토크 적용
+            elif abs(self.current_speed) > 1e-3:
+                torque = -np.sign(self.current_speed) * self.brake_torque
             else:
                 torque = 0.0
+
             # 슬립비에 따라 ABS 토크 계수 적용
             slip = self.last_slip[i]
             abs_multiplier = params["ABS_TORQUE_LOW"]
@@ -142,6 +148,7 @@ class AirBrake:
                 abs_multiplier = params["ABS_TORQUE_HIGH"]
             elif slip < params["SLIP_MAX"]:
                 abs_multiplier = params["ABS_TORQUE_OPTIMAL"]
+
             data.ctrl[act_idx] = torque * abs_multiplier
             self.last_torque[i] = data.ctrl[act_idx]
 
