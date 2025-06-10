@@ -1,0 +1,18 @@
+<mujoco model="base_scene">
+    <compiler angle="degree" coordinate="local" />
+    <option gravity="0 0 -9.81" integrator="RK4" timestep="0.001" />
+
+    <include file="simplecar_mjcf.xml" />  
+
+    <asset>
+        
+    <mesh name="speedbump-3_013-0_045-5_000" file="speedbumps/speedbump-3_013-0_045-5_000.stl" /></asset>
+
+    <worldbody>
+        <geom name="ground" type="plane" size="10 10 0.1" rgba="0.5 0.5 0.5 1" />
+
+        
+        <body name="vehicle" pos="0 0 0">
+        </body>
+    <geom type="mesh" mesh="speedbump-3_013-0_045-5_000" pos="5.000 0.000 0.000" euler="0 0 -90" rgba="0.9 0.5 0.2 1" contype="1" conaffinity="1" /><geom type="mesh" mesh="speedbump-3_013-0_045-5_000" pos="15.476 0.000 0.000" euler="0 0 -90" rgba="0.9 0.5 0.2 1" contype="1" conaffinity="1" /><geom type="mesh" mesh="speedbump-3_013-0_045-5_000" pos="21.651 0.000 0.000" euler="0 0 -90" rgba="0.9 0.5 0.2 1" contype="1" conaffinity="1" /><geom type="mesh" mesh="speedbump-3_013-0_045-5_000" pos="29.576 0.000 0.000" euler="0 0 -90" rgba="0.9 0.5 0.2 1" contype="1" conaffinity="1" /><geom type="mesh" mesh="speedbump-3_013-0_045-5_000" pos="37.139 0.000 0.000" euler="0 0 -90" rgba="0.9 0.5 0.2 1" contype="1" conaffinity="1" /></worldbody>
+</mujoco>

@@ -1,0 +1,58 @@
+<mujoco model="simplecar">
+  <compiler angle="radian"/>
+
+  <asset>
+    <material name="black" rgba="0 0 0 1"/>
+    <material name="blue" rgba="0.6 0.7 0.8 1"/>
+  </asset>
+
+  <worldbody>
+    <body name="base_link" pos="0 0 0"> <inertial pos="0 0 0" mass="6" diaginertia="0.2 0.2 0.2"/>
+      <geom size="0.5 0.3 0.1" type="box" rgba="0.6 0.7 0.8 1"/> <site name="car_body_site" pos="0 0 0.05"/> <body name="left_hinge" pos="0.2 0 0">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="5e-06 5e-06 5e-06"/>
+        <joint name="base_to_left_hinge" pos="0 0 0" axis="0 0 1" range="-0.5 0.5" type="hinge"/> <geom size="0.10 0.01 0.01" type="box" rgba="0 0 0 1"/> <body name="left_front_wheel" pos="0 0.2 0">
+          <inertial pos="0 0 0" mass="0.3" diaginertia="0.4 0.4 0.2"/>
+          <joint name="left_hinge_to_left_front_wheel" pos="0 0 0" axis="0 1 0" type="hinge"/> <geom size="0.1 0.025" quat="0.500023 0.5 0.5 -0.499977" type="cylinder" rgba="0 0 0 1"/>
+        </body>
+      </body>
+
+      <body name="right_hinge" pos="0.2 0 0">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="5e-06 5e-06 5e-06"/>
+        <joint name="base_to_right_hinge" pos="0 0 0" axis="0 0 1" range="-0.5 0.5" type="hinge"/>
+        <geom size="0.10 0.01 0.01" type="box" rgba="0 0 0 1"/>
+        <body name="right_front_wheel" pos="0 -0.2 0">
+          <inertial pos="0 0 0" mass="0.3" diaginertia="0.4 0.4 0.2"/>
+          <joint name="right_hinge_to_right_front_wheel" pos="0 0 0" axis="0 1 0" type="hinge"/>
+          <geom size="0.1 0.025" quat="0.500023 -0.5 -0.5 -0.499977" type="cylinder" rgba="0 0 0 1"/>
+        </body>
+      </body>
+
+      <body name="left_back_wheel" pos="-0.2 0.175 0">
+        <inertial pos="0 0 0" mass="0.3" diaginertia="0.4 0.4 0.2"/>
+        <joint name="base_to_left_back_wheel" pos="0 0 0" axis="0 1 0" type="hinge"/>
+        <geom size="0.1 0.025" quat="0.500023 0.5 0.5 -0.499977" type="cylinder" rgba="0 0 0 1"/>
+      </body>
+
+      <body name="right_back_wheel" pos="-0.2 -0.175 0">
+        <inertial pos="0 0 0" mass="0.3" diaginertia="0.4 0.4 0.2"/>
+        <joint name="base_to_right_back_wheel" pos="0 0 0" axis="0 1 0" type="hinge"/>
+        <geom size="0.1 0.025" quat="0.500023 -0.5 -0.5 -0.499977" type="cylinder" rgba="0 0 0 1"/>
+      </body>
+    </body> </worldbody>
+
+  <actuator>
+    <motor name="fl_motor" joint="left_hinge_to_left_front_wheel" gear="10"/> <motor name="fr_motor" joint="right_hinge_to_right_front_wheel" gear="10"/>
+    <motor name="rl_motor" joint="base_to_left_back_wheel" gear="10"/>
+    <motor name="rr_motor" joint="base_to_right_back_wheel" gear="10"/>
+
+    <motor name="left_hinge_motor" joint="base_to_left_hinge" gear="10"/>
+    <motor name="right_hinge_motor" joint="base_to_right_hinge" gear="10"/>
+
+  </actuator>
+
+  <sensor>
+    <accelerometer name="accel_z" site="car_body_site"/>
+    <gyro name="gyro_pitch" site="car_body_site"/>
+  </sensor>
+
+</mujoco>
