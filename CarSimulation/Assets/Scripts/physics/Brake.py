@@ -2,8 +2,8 @@
 """
 목적 : 에어 브레이크 + ABS 시스템
 기여자 : 김준호, 박도솔, 박진석, 윤건영 
-최종 수정자 : 박도솔 
-최종 수정일자 : 2025-05-25
+최종 수정자 : 윤건영 
+최종 수정일자 : 2025-06-01
 
 [참고]
 1. main loop 실행시 여러번 호출하지 않도록 최적화 필요
@@ -29,8 +29,9 @@ class AirBrake:
         self.wids = get_wheel_ids(model)        # 바퀴 ID
         self._wheel_jids = [jid for (_, _, jid, _, _) in self.wids]
         self.mass = model.body_mass[self.cid]   # 차체 질량
-        self.h_cg = model.body_pos[self.cid, 2] if params["CG_HEIGHT"] is None else params["CG_HEIGHT"] # 차체 중심 높이
-
+        self.h_cg = model.body_pos[self.cid, 2] if params["CG_HEIGHT"] is None else params["CG_HEIGHT"] # 차체 중심 높이 
+        self._wheel_vel_sensor_ids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SENSOR, f"{n}_vel") for n in ("fl_wheel", "fr_wheel", "rl_wheel", "rr_wheel")] # ABS 시스템 (바퀴 각속도 센서)
+        
         # 내부 상태 변수
         self.p = params["P_INIT"]
         self.braking = params["BREAK_MODE"]
@@ -54,8 +55,12 @@ class AirBrake:
     def _compute_slip(self, data: mujoco.MjData, forward_speed: float, WHEEL_RADIUS: float) -> float:
         
         wheel_speeds = [] # [fl, fr, rl, rr] 각 바퀴별 각속도
-        for i, (lbl, bid, *_rest) in enumerate(self.wids):
-            wheel_speeds.append(data.qvel[bid])
+        for sid in self._wheel_vel_sensor_ids:
+            if sid != -1:                 # 센서가 있을 때만 센서값 읽기
+                sensor_adr = self.model.sensor_adr[sid]
+                wheel_speeds.append(data.sensordata[sensor_adr])
+            else:
+                wheel_speeds.append(0.0)  # 센서가 없으면 0으로 처리
         
         slip_ratios = []  # slip_ratios: [fl, fr, rl, rr] 각 바퀴별 슬립비
         for ws in wheel_speeds:
@@ -126,11 +131,8 @@ class AirBrake:
         for i, act_idx in enumerate(self._act_brake):
             wheel_jid = self._wheel_jids[i]
             wheel_vel = data.qvel[wheel_jid]
-            # 바퀴가 돌고 있으면 반대 방향으로 토크, 거의 멈췄으면 차량 진행방향 참고
+            # 바퀴가 돌고 있으면 반대 방향으로 토크
             if abs(wheel_vel) > 1e-3:
-                torque = -np.sign(wheel_vel) * self.brake_torque
-            elif abs(self.current_speed) > 1e-3:
-                torque = -np.sign(self.current_speed) * self.brake_torque
             else:
                 torque = 0.0
             # 슬립비에 따라 ABS 토크 계수 적용
